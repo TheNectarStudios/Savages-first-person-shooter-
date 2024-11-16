@@ -25,10 +25,6 @@ namespace InfimaGames.LowPolyShooterPack
         [SerializeField] 
         private int roundsPerMinutes = 200;
 
-        [Tooltip("Mask of things recognized when firing.")]
-        [SerializeField]
-        private LayerMask mask;
-
         [Tooltip("Maximum distance at which this weapon can fire accurately. Shots beyond this distance will not use linetracing for accuracy.")]
         [SerializeField]
         private float maximumDistance = 500.0f;
@@ -48,6 +44,10 @@ namespace InfimaGames.LowPolyShooterPack
         [Tooltip("Projectile Prefab. This is the prefab spawned when the weapon shoots.")]
         [SerializeField]
         private GameObject prefabProjectile;
+
+        [Tooltip("Transform representing the firing point (barrel of the weapon).")]
+        [SerializeField]
+        private Transform firingPoint;
         
         [Tooltip("The AnimatorController a player character needs to use while wielding this weapon.")]
         [SerializeField] 
@@ -56,7 +56,7 @@ namespace InfimaGames.LowPolyShooterPack
         [Tooltip("Weapon Body Texture.")]
         [SerializeField]
         private Sprite spriteBody;
-        
+
         [Header("Audio Clips Holster")]
 
         [Tooltip("Holster Audio Clip.")]
@@ -201,40 +201,31 @@ namespace InfimaGames.LowPolyShooterPack
             //Play Reload Animation.
             animator.Play(HasAmmunition() ? "Reload" : "Reload Empty", 0, 0.0f);
         }
+
         public override void Fire(float spreadMultiplier = 1.0f)
         {
-            //We need a muzzle in order to fire this weapon!
-            if (muzzleBehaviour == null)
+            // Ensure that we have a muzzle and firing point set up.
+            if (firingPoint == null)
+            {
+                Debug.LogError("Firing point is not assigned!");
                 return;
-            
-            //Make sure that we have a camera cached, otherwise we don't really have the ability to perform traces.
-            if (playerCamera == null)
-                return;
+            }
 
-            //Get Muzzle Socket. This is the point we fire from.
-            Transform muzzleSocket = muzzleBehaviour.GetSocket();
-            
-            //Play the firing animation.
+            // Play the firing animation.
             const string stateName = "Fire";
             animator.Play(stateName, 0, 0.0f);
-            //Reduce ammunition! We just shot, so we need to get rid of one!
+
+            // Reduce ammunition. Decrease the current ammo count by 1.
             ammunitionCurrent = Mathf.Clamp(ammunitionCurrent - 1, 0, magazineBehaviour.GetAmmunitionTotal());
 
-            //Play all muzzle effects.
-            muzzleBehaviour.Effect();
-            
-            //Determine the rotation that we want to shoot our projectile in.
-            Quaternion rotation = Quaternion.LookRotation(playerCamera.forward * 1000.0f - muzzleSocket.position);
-            
-            //If there's something blocking, then we can aim directly at that thing, which will result in more accurate shooting.
-            if (Physics.Raycast(new Ray(playerCamera.position, playerCamera.forward),
-                out RaycastHit hit, maximumDistance, mask))
-                rotation = Quaternion.LookRotation(hit.point - muzzleSocket.position);
-                
-            //Spawn projectile from the projectile spawn point.
-            GameObject projectile = Instantiate(prefabProjectile, muzzleSocket.position, rotation);
-            //Add velocity to the projectile.
-            projectile.GetComponent<Rigidbody>().velocity = projectile.transform.forward * projectileImpulse;   
+            // Play all muzzle effects (e.g., muzzle flash).
+            muzzleBehaviour?.Effect();
+
+            // Spawn the projectile at the firing point position with its forward direction.
+            GameObject projectile = Instantiate(prefabProjectile, firingPoint.position, firingPoint.rotation);
+
+            // Add velocity to the projectile in the forward direction of the firing point.
+            projectile.GetComponent<Rigidbody>().velocity = firingPoint.forward * projectileImpulse;
         }
 
         public override void FillAmmunition(int amount)
