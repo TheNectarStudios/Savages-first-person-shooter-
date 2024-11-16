@@ -6,55 +6,102 @@ public class ZombieController : MonoBehaviour
     private Transform player;
 
     [Header("Movement Settings")]
-    public float patrolSpeed = 2f;         // Speed while patrolling
-    public float chaseSpeed = 5f;         // Speed while chasing the player
-    public float detectionRange = 10f;    // Range within which the zombie detects the player
-    public float attackRange = 2f;        // Range within which the zombie attacks the player
-    public float patrolRadius = 10f;      // Radius within which the zombie patrols randomly
-    public float patrolWaitTime = 3f;     // Time to wait before selecting a new patrol point
+    public float patrolSpeed = 2f;
+    public float chaseSpeed = 5f;
+    public float detectionRange = 10f;
+    public float attackRange = 2f;
+    public float patrolRadius = 10f;
+    public float patrolWaitTime = 3f;
 
     [Header("Audio Settings")]
-    public AudioSource continuousRoar;    // Audio source for the continuous roar
-    public AudioSource hyperRoar;         // Audio source for the hyper roar
+    public AudioSource continuousRoar;
+    public AudioSource hyperRoar;
+
+    [Header("Health Settings")]
+    public int maxHealth = 100;
+    private int currentHealth;
 
     private Vector3 randomPatrolPoint;
     private float patrolTimer;
 
-    private bool isPatrolling = false;
+    private bool isPatrolling = true;
     private bool isChasing = false;
     private bool isAttacking = false;
+    private bool isDead = false;
 
     void Start()
     {
         animator = GetComponent<Animator>();
         player = GameObject.FindGameObjectWithTag("Player").transform;
 
-        // Initialize patrolling
+        // Initialize health and patrolling
+        currentHealth = maxHealth;
         SelectRandomPatrolPoint();
     }
 
     void Update()
     {
+        if (isDead)
+            return;
+
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
         if (distanceToPlayer <= attackRange)
         {
-            // Attack the player
             StartAttacking();
         }
         else if (distanceToPlayer <= detectionRange)
         {
-            // Chase the player
             StartChasing();
         }
         else
         {
-            // Patrol if no player is near
             StartPatrolling();
         }
 
         UpdateAnimatorParameters();
     }
+
+    public void TakeDamage(int damage)
+    {
+        if (isDead)
+            return;
+
+        currentHealth -= damage;
+
+        if (currentHealth <= 0)
+        {
+            Die();
+        }
+    }
+
+   private void Die()
+{
+    isDead = true;
+    animator.SetTrigger("Die"); // Trigger the die animation
+    continuousRoar.Stop();
+    hyperRoar.Stop();
+
+    // Disable further movement and AI logic
+    isPatrolling = false;
+    isChasing = false;
+    isAttacking = false;
+
+    // Disable collider if necessary
+    Collider collider = GetComponent<Collider>();
+    if (collider != null)
+        collider.enabled = false;
+
+    // Freeze Rigidbody to stop motion and rotation
+    Rigidbody rb = GetComponent<Rigidbody>();
+    if (rb != null)
+    {
+        rb.constraints = RigidbodyConstraints.FreezeAll;
+    }
+
+    // Optionally destroy the zombie after the death animation finishes
+    // Adjust the time to match the animation length
+}
 
     private void StartPatrolling()
     {
@@ -79,7 +126,7 @@ public class ZombieController : MonoBehaviour
             hyperRoar.Play();
         }
 
-        isPatrolling = false;
+        isPatrolling = true;
         isChasing = true;
         isAttacking = false;
 
@@ -94,7 +141,7 @@ public class ZombieController : MonoBehaviour
             hyperRoar.Play();
         }
 
-        isPatrolling = false;
+        isPatrolling = true;
         isChasing = false;
         isAttacking = true;
 
@@ -130,22 +177,35 @@ public class ZombieController : MonoBehaviour
 
     private void AttackPlayer()
     {
-        // Here you can add logic for attacking the player, like dealing damage
-        transform.LookAt(player); // Face the player
+        transform.LookAt(player);
     }
 
     private void MoveTowards(Vector3 target, float speed)
     {
         Vector3 direction = (target - transform.position).normalized;
         transform.position += direction * speed * Time.deltaTime;
-        transform.LookAt(new Vector3(target.x, transform.position.y, target.z)); // Face the target
+        transform.LookAt(new Vector3(target.x, transform.position.y, target.z));
     }
 
     private void UpdateAnimatorParameters()
     {
-        animator.SetBool("petroling", isPatrolling);
+        animator.SetBool("patrolling", isPatrolling);
         animator.SetBool("chasing", isChasing);
         animator.SetBool("attacking", isAttacking);
-        animator.SetBool("Die", false); // Set this to true when implementing death
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        // Check if the object hitting the zombie has the "Bullet" tag
+        if (other.CompareTag("Bullet"))
+        {
+            // Apply damage (you can customize this value based on your bullet system)
+            TakeDamage(20);
+            Debug.Log("Zombie hit by bullet!");
+            Debug.Log("Current Health: " + currentHealth);
+
+            // Destroy the bullet after it hits
+          
+        }
     }
 }
