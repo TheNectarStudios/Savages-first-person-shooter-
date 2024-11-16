@@ -5,21 +5,32 @@ public class ZombieController : MonoBehaviour
     private Animator animator;
     private Transform player;
 
+    [Header("Movement Settings")]
     public float patrolSpeed = 2f;         // Speed while patrolling
     public float chaseSpeed = 5f;         // Speed while chasing the player
     public float detectionRange = 10f;    // Range within which the zombie detects the player
     public float attackRange = 2f;        // Range within which the zombie attacks the player
-    public Transform[] patrolPoints;      // Points for patrolling
-    private int currentPatrolIndex = 0;
+    public float patrolRadius = 10f;      // Radius within which the zombie patrols randomly
+    public float patrolWaitTime = 3f;     // Time to wait before selecting a new patrol point
+
+    [Header("Audio Settings")]
+    public AudioSource continuousRoar;    // Audio source for the continuous roar
+    public AudioSource hyperRoar;         // Audio source for the hyper roar
+
+    private Vector3 randomPatrolPoint;
+    private float patrolTimer;
 
     private bool isPatrolling = false;
     private bool isChasing = false;
     private bool isAttacking = false;
-     
+
     void Start()
     {
         animator = GetComponent<Animator>();
         player = GameObject.FindGameObjectWithTag("Player").transform;
+
+        // Initialize patrolling
+        SelectRandomPatrolPoint();
     }
 
     void Update()
@@ -47,6 +58,12 @@ public class ZombieController : MonoBehaviour
 
     private void StartPatrolling()
     {
+        if (!continuousRoar.isPlaying)
+        {
+            hyperRoar.Stop();
+            continuousRoar.Play();
+        }
+
         isPatrolling = true;
         isChasing = false;
         isAttacking = false;
@@ -56,6 +73,12 @@ public class ZombieController : MonoBehaviour
 
     private void StartChasing()
     {
+        if (!hyperRoar.isPlaying)
+        {
+            continuousRoar.Stop();
+            hyperRoar.Play();
+        }
+
         isPatrolling = false;
         isChasing = true;
         isAttacking = false;
@@ -65,6 +88,12 @@ public class ZombieController : MonoBehaviour
 
     private void StartAttacking()
     {
+        if (!hyperRoar.isPlaying)
+        {
+            continuousRoar.Stop();
+            hyperRoar.Play();
+        }
+
         isPatrolling = false;
         isChasing = false;
         isAttacking = true;
@@ -74,17 +103,24 @@ public class ZombieController : MonoBehaviour
 
     private void Patrol()
     {
-        if (patrolPoints.Length == 0) return;
+        patrolTimer += Time.deltaTime;
 
-        // Move towards the current patrol point
-        Transform targetPatrolPoint = patrolPoints[currentPatrolIndex];
-        MoveTowards(targetPatrolPoint.position, patrolSpeed);
-
-        // Check if the zombie has reached the patrol point
-        if (Vector3.Distance(transform.position, targetPatrolPoint.position) < 0.5f)
+        if (Vector3.Distance(transform.position, randomPatrolPoint) < 0.5f || patrolTimer >= patrolWaitTime)
         {
-            currentPatrolIndex = (currentPatrolIndex + 1) % patrolPoints.Length;
+            SelectRandomPatrolPoint();
+            patrolTimer = 0f;
         }
+
+        MoveTowards(randomPatrolPoint, patrolSpeed);
+    }
+
+    private void SelectRandomPatrolPoint()
+    {
+        Vector3 randomDirection = Random.insideUnitSphere * patrolRadius;
+        randomDirection += transform.position;
+        randomDirection.y = transform.position.y;
+
+        randomPatrolPoint = randomDirection;
     }
 
     private void ChasePlayer()
