@@ -1,0 +1,61 @@
+# This .gitignore file is for Unity projects
+
+# User-specific files
+*.user
+*.userprefs
+*.pidb
+*.suo
+*.tmp
+*.svd
+.vscode/
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Dd]istro/
+[Dd]ist/
+[Ll]og/
+[Ll]ogs/
+build/
+Build/
+
+# User-specific files for Unity IDE
+.idea/
+.vscode/
+
+# Unity3D specific files
+[Tt]emp/
+[Tt]empBackup/
+[Tt]empMeta/
+[Tt]empScene/
+
+# Uncomment if you have a directory for your unity-generated files
+# .unity/
+
+# Unity Asset Store packages
+[Aa]ssets/Plugins/Editor/AssetStoreTools*
+
+# The Unity cache
+.cache/
+
+# Automatically generated files
+sysinfo.txt
+*.pdb
+*.mdb
+*.zip
+*.tar
+*.gz
+*.rar
+*.7z
+
+# Unity serialization files
+*.asset
+*.unity
+
+# Thumbnails
+*.thumb
+
+# Other generated folders
+Library/
+Logs/
+obj/
