@@ -194,7 +194,7 @@ public class ZombieController : MonoBehaviour
         animator.SetBool("attacking", isAttacking);
     }
 
-    private void OnTriggerEnter(Collider other)
+    private void  OnTriggerEnter(Collider other)
     {
         // Check if the object hitting the zombie has the "Bullet" tag
         if (other.CompareTag("Bullet"))
