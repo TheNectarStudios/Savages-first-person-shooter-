@@ -1,51 +1,151 @@
 using UnityEngine;
+using TMPro;
 
-public class WeaponAnimatorController : MonoBehaviour
+public class FiringMechanismWithReload : MonoBehaviour
 {
-    private Animator animator;
+    public Transform firingPoint; // Assign this in the Inspector
+    public GameObject projectilePrefab; // Assign this in the Inspector
+    public float projectileSpeed = 20f;
 
-    // Animation parameter names
-    private static readonly int FireTrigger = Animator.StringToHash("Fire");
-    private static readonly int ReloadEmptyTrigger = Animator.StringToHash("Reload Empty");
+    [Header("Ammo Settings")]
+    public int magazineSize = 10;
+    public int totalBullets = 30;
+    public float reloadTime = 2f;
 
-    // Start is called before the first frame update
+    [Header("Audio Settings")]
+    public AudioClip fireSound; // Assign the firing sound in the Inspector
+    public AudioClip reloadSound; // Assign the reloading sound in the Inspector
+    private AudioSource audioSource; // To play the audio clips
+
+    [Header("UI Element Names")]
+    public string chamberBulletsTextName = "ChamberBulletsText"; // Name of the TMP text object in the scene
+    public string totalBulletsTextName = "TotalBulletsText"; // Name of the TMP text object in the scene
+
+    private TMP_Text chamberBulletsText; // TMP Text for bullets in the chamber
+    private TMP_Text totalBulletsText; // TMP Text for total bullets
+
+    private int bulletsInChamber; // Current bullets in the magazine
+    private bool isReloading = false;
+
     void Start()
     {
-        animator = GetComponent<Animator>();
-        if (animator == null)
+        bulletsInChamber = magazineSize;
+
+        // Initialize TMP text fields dynamically by name
+        chamberBulletsText = GameObject.Find(chamberBulletsTextName)?.GetComponent<TMP_Text>();
+        totalBulletsText = GameObject.Find(totalBulletsTextName)?.GetComponent<TMP_Text>();
+
+        if (chamberBulletsText == null || totalBulletsText == null)
         {
-            Debug.LogError("Animator component not found on " + gameObject.name);
+            Debug.LogError("Failed to find TMP text objects. Ensure their names match the specified names.");
         }
+
+        // Initialize the audio source
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+
+        UpdateAmmoUI();
     }
 
     void Update()
     {
-        // Fire animation on left mouse click
-        if (Input.GetMouseButtonDown(0)) // 0 = Left Mouse Button
+        // Fire on left mouse button click
+        if (Input.GetMouseButtonDown(0))
         {
-            PlayFireAnimation();
+            Fire();
         }
 
-        // Reload empty animation on pressing R
+        // Reload on pressing 'R'
         if (Input.GetKeyDown(KeyCode.R))
         {
-            PlayReloadEmptyAnimation();
+            StartReloading();
         }
     }
 
-    private void PlayFireAnimation()
+    public void Fire()
     {
-        if (animator != null)
+        if (isReloading)
         {
-            animator.SetTrigger(FireTrigger);
+            Debug.Log("Reloading, cannot fire.");
+            return;
+        }
+
+        if (bulletsInChamber > 0)
+        {
+            // Fire the projectile
+            GameObject projectile = Instantiate(projectilePrefab, firingPoint.position, firingPoint.rotation);
+            Rigidbody rb = projectile.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.velocity = firingPoint.forward * projectileSpeed;
+            }
+
+            bulletsInChamber--;
+            UpdateAmmoUI();
+
+            // Play the firing sound
+            PlaySound(fireSound);
+        }
+        else
+        {
+            Debug.Log("No bullets in the chamber. Reload required.");
         }
     }
 
-    private void PlayReloadEmptyAnimation()
+    public void StartReloading()
     {
-        if (animator != null)
+        if (isReloading || bulletsInChamber == magazineSize || totalBullets <= 0)
         {
-            animator.SetTrigger(ReloadEmptyTrigger);
+            return;
+        }
+
+        isReloading = true;
+        Debug.Log("Reloading...");
+        PlaySound(reloadSound);
+        Invoke(nameof(Reload), reloadTime);
+    }
+
+    private void Reload()
+    {
+        int bulletsToReload = magazineSize - bulletsInChamber;
+
+        if (totalBullets >= bulletsToReload)
+        {
+            bulletsInChamber += bulletsToReload;
+            totalBullets -= bulletsToReload;
+        }
+        else
+        {
+            bulletsInChamber += totalBullets;
+            totalBullets = 0;
+        }
+
+        isReloading = false;
+        UpdateAmmoUI();
+        Debug.Log("Reload complete.");
+    }
+
+    private void UpdateAmmoUI()
+    {
+        if (chamberBulletsText != null)
+        {
+            chamberBulletsText.text = bulletsInChamber.ToString();
+        }
+
+        if (totalBulletsText != null)
+        {
+            totalBulletsText.text = totalBullets.ToString();
+        }
+    }
+
+    private void PlaySound(AudioClip clip)
+    {
+        if (clip != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(clip);
         }
     }
 }
