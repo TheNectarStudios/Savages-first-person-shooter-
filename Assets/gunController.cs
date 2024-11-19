@@ -1,6 +1,5 @@
 using UnityEngine;
-using TMPro;
-
+using TMPro; // For TextMeshPro
 public class FiringMechanismWithReload : MonoBehaviour
 {
     public Transform firingPoint; // Assign this in the Inspector
@@ -11,6 +10,7 @@ public class FiringMechanismWithReload : MonoBehaviour
     public int magazineSize = 10;
     public int totalBullets = 30;
     public float reloadTime = 2f;
+    public float fireRate = 0.5f; // Time (in seconds) between consecutive shots
 
     [Header("Audio Settings")]
     public AudioClip fireSound; // Assign the firing sound in the Inspector
@@ -26,6 +26,9 @@ public class FiringMechanismWithReload : MonoBehaviour
 
     private int bulletsInChamber; // Current bullets in the magazine
     private bool isReloading = false;
+    private bool canFire = true; // To manage fire rate
+
+    public Animator gunAnimator; // Assign this in the Inspector
 
     void Start()
     {
@@ -53,7 +56,7 @@ public class FiringMechanismWithReload : MonoBehaviour
     void Update()
     {
         // Fire on left mouse button click
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonDown(0) && canFire)
         {
             Fire();
         }
@@ -75,6 +78,13 @@ public class FiringMechanismWithReload : MonoBehaviour
 
         if (bulletsInChamber > 0)
         {
+            // Prevent firing again until the fire rate interval has passed
+            canFire = false;
+            Invoke(nameof(ResetFire), fireRate);
+
+            // Trigger the shooting animation
+            gunAnimator.SetTrigger("Fire");
+
             // Fire the projectile
             GameObject projectile = Instantiate(projectilePrefab, firingPoint.position, firingPoint.rotation);
             Rigidbody rb = projectile.GetComponent<Rigidbody>();
@@ -93,6 +103,13 @@ public class FiringMechanismWithReload : MonoBehaviour
         {
             Debug.Log("No bullets in the chamber. Reload required.");
         }
+    }
+
+    private void ResetFire()
+    {
+        // Reset the fire trigger and allow firing again
+        gunAnimator.ResetTrigger("Fire");
+        canFire = true;
     }
 
     public void StartReloading()
