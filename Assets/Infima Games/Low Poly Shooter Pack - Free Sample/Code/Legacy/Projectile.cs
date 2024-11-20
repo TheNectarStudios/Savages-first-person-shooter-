@@ -16,6 +16,8 @@ public class Projectile : MonoBehaviour {
 	[Tooltip("Maximum time after impact that the bullet is destroyed")]
 	public float maxDestroyTime;
 
+	public GameObject Player ; 
+
 	[Header("Impact Effect Prefabs")]
 	public Transform [] bloodImpactPrefabs;
 	public Transform [] metalImpactPrefabs;
@@ -24,10 +26,12 @@ public class Projectile : MonoBehaviour {
 
 	private void Start ()
 	{
+		// take player from game tag 
+		Player = GameObject.FindGameObjectWithTag("Player");
 		//Grab the game mode service, we need it to access the player character!
 		var gameModeService = ServiceLocator.Current.Get<IGameModeService>();
 		//Ignore the main player character's collision. A little hacky, but it should work.
-		Physics.IgnoreCollision(gameModeService.GetPlayerCharacter().GetComponent<Collider>(), GetComponent<Collider>());
+		Physics.IgnoreCollision(Player.GetComponent<Collider>(), GetComponent<Collider>());
 		
 		//Start destroy timer
 		StartCoroutine (DestroyAfter ());
