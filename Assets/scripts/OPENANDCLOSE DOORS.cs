@@ -6,6 +6,8 @@ public class DoorControllerWithSound : MonoBehaviour
     public Transform door; // Reference to the door object.
     public Vector3 closedPosition; // The door's initial (closed) position.
     public Vector3 openPosition; // The door's final (open) position.
+    public Quaternion closedRotation; // The door's initial (closed) rotation.
+    public Quaternion openRotation; // The door's final (open) rotation.
     public float moveDuration = 1f; // Time taken to open/close the door.
 
     [Header("Sound Settings")]
@@ -18,10 +20,11 @@ public class DoorControllerWithSound : MonoBehaviour
 
     private void Start()
     {
-        // Ensure the door starts at the closed position.
+        // Ensure the door starts at the closed position and rotation.
         if (door != null)
         {
             door.position = closedPosition;
+            door.rotation = closedRotation;
         }
         else
         {
@@ -47,25 +50,44 @@ public class DoorControllerWithSound : MonoBehaviour
             PlaySound(isOpen ? openSound : closeSound);
 
             // Start moving the door.
-            StartCoroutine(MoveDoor(isOpen ? openPosition : closedPosition));
+            StartCoroutine(MoveDoor(
+                isOpen ? openPosition : closedPosition, 
+                isOpen ? openRotation : closedRotation
+            ));
         }
     }
 
-    private System.Collections.IEnumerator MoveDoor(Vector3 targetPosition)
+    private System.Collections.IEnumerator MoveDoor(Vector3 targetPosition, Quaternion targetRotation)
     {
         isMoving = true; // Lock movement during animation.
         float elapsedTime = 0f;
         Vector3 startingPosition = door.position;
+        Quaternion startingRotation = door.rotation;
 
         while (elapsedTime < moveDuration)
         {
             elapsedTime += Time.deltaTime;
             float t = Mathf.Clamp01(elapsedTime / moveDuration);
-            door.position = Vector3.Lerp(startingPosition, targetPosition, t);
+
+            // Lerp position only if open and closed positions are different.
+            if (closedPosition != openPosition)
+            {
+                door.position = Vector3.Lerp(startingPosition, targetPosition, t);
+            }
+
+            // Lerp rotation every time.
+            door.rotation = Quaternion.Lerp(startingRotation, targetRotation, t);
+
             yield return null;
         }
 
-        door.position = targetPosition; // Snap to the final position.
+        // Snap to the final position and rotation.
+        if (closedPosition != openPosition)
+        {
+            door.position = targetPosition;
+        }
+        door.rotation = targetRotation;
+
         isMoving = false; // Unlock movement.
     }
 
