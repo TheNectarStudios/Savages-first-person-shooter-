@@ -12,23 +12,29 @@ namespace EvolveGames
         [Space, SerializeField] Camera cam;
         [SerializeField] GameObject PlayerController;
         [SerializeField] Image ImagePrefab;
-        [Space ,SerializeField, Range(0.1f, 20)] float MaxViewRange = 8;
+        [Space, SerializeField, Range(0.1f, 20)] float MaxViewRange = 8;
         [SerializeField, Range(0.1f, 20)] float MaxTextViewRange = 3;
         float Distance;
         Text ImageText;
         Image ImageUI;
+
+        // Reference to the script with the function to be triggered
+        [SerializeField] MonoBehaviour TargetScript;
+        [SerializeField] string FunctionName = "OnInteraction";
+
         void Start()
         {
             ImageUI = Instantiate(ImagePrefab, FindObjectOfType<Canvas>().transform).GetComponent<Image>();
             ImageText = ImageUI.GetComponentInChildren<Text>();
             ImageText.text = PointText;
         }
+
         void Update()
         {
             ImageUI.transform.position = cam.WorldToScreenPoint(calculateWorldPosition(transform.position, cam));
             Distance = Vector3.Distance(PlayerController.transform.position, transform.position);
 
-            if(Distance < MaxTextViewRange)
+            if (Distance < MaxTextViewRange)
             {
                 Color OpacityColor = ImageText.color;
                 OpacityColor.a = Mathf.Lerp(OpacityColor.a, 1, 10 * Time.deltaTime);
@@ -46,6 +52,12 @@ namespace EvolveGames
                 Color OpacityColor = ImageUI.color;
                 OpacityColor.a = Mathf.Lerp(OpacityColor.a, 1, 10 * Time.deltaTime);
                 ImageUI.color = OpacityColor;
+
+                // Check for player input
+                if (Input.GetKeyDown(KeyCode.E))
+                {
+                    TriggerFunction();
+                }
             }
             else
             {
@@ -53,8 +65,21 @@ namespace EvolveGames
                 OpacityColor.a = Mathf.Lerp(OpacityColor.a, 0, 10 * Time.deltaTime);
                 ImageUI.color = OpacityColor;
             }
-
         }
+
+        private void TriggerFunction()
+        {
+            if (TargetScript != null && !string.IsNullOrEmpty(FunctionName))
+            {
+                // Use reflection to call the function on the target script
+                TargetScript.Invoke(FunctionName, 0f);
+            }
+            else
+            {
+                Debug.LogWarning("TargetScript or FunctionName is not set!");
+            }
+        }
+
         private Vector3 calculateWorldPosition(Vector3 position, Camera camera)
         {
             Vector3 camNormal = camera.transform.forward;
@@ -68,6 +93,5 @@ namespace EvolveGames
             }
             return position;
         }
-
     }
 }

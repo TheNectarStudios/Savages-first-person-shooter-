@@ -43,15 +43,23 @@ public class DoorControllerWithSound : MonoBehaviour
         // Check if the player triggers the zone and the door is not moving.
         if (other.CompareTag("Player") && !isMoving)
         {
-            // Toggle the door's state.
+            ToggleDoor(); // Toggle the door state when triggered.
+        }
+    }
+
+    public void ToggleDoor()
+    {
+        if (!isMoving)
+        {
+            // Toggle the state.
             isOpen = !isOpen;
 
             // Play the appropriate sound.
             PlaySound(isOpen ? openSound : closeSound);
 
-            // Start moving the door.
+            // Move the door to the target position and rotation.
             StartCoroutine(MoveDoor(
-                isOpen ? openPosition : closedPosition, 
+                isOpen ? openPosition : closedPosition,
                 isOpen ? openRotation : closedRotation
             ));
         }
