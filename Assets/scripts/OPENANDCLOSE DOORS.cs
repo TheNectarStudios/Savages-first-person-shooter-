@@ -4,10 +4,16 @@ public class DoorControllerWithSound : MonoBehaviour
 {
     [Header("Door Movement Settings")]
     public Transform door; // Reference to the door object.
-    public Vector3 closedPosition; // The door's initial (closed) position.
-    public Vector3 openPosition; // The door's final (open) position.
+
+    [Header("Rotation Settings")]
     public Quaternion closedRotation; // The door's initial (closed) rotation.
     public Quaternion openRotation; // The door's final (open) rotation.
+
+    [Header("Position Settings")]
+    public bool changePosition = false; // Toggle whether to change the position.
+    public Vector3 closedPosition; // The door's initial (closed) position.
+    public Vector3 openPosition; // The door's final (open) position.
+
     public float moveDuration = 1f; // Time taken to open/close the door.
 
     [Header("Sound Settings")]
@@ -23,7 +29,10 @@ public class DoorControllerWithSound : MonoBehaviour
         // Ensure the door starts at the closed position and rotation.
         if (door != null)
         {
-            door.position = closedPosition;
+            if (changePosition)
+            {
+                door.position = closedPosition;
+            }
             door.rotation = closedRotation;
         }
         else
@@ -57,44 +66,44 @@ public class DoorControllerWithSound : MonoBehaviour
             // Play the appropriate sound.
             PlaySound(isOpen ? openSound : closeSound);
 
-            // Move the door to the target position and rotation.
+            // Move the door to the target rotation and optionally the position.
             StartCoroutine(MoveDoor(
-                isOpen ? openPosition : closedPosition,
-                isOpen ? openRotation : closedRotation
+                isOpen ? openRotation : closedRotation,
+                isOpen ? openPosition : closedPosition
             ));
         }
     }
 
-    private System.Collections.IEnumerator MoveDoor(Vector3 targetPosition, Quaternion targetRotation)
+    private System.Collections.IEnumerator MoveDoor(Quaternion targetRotation, Vector3 targetPosition)
     {
         isMoving = true; // Lock movement during animation.
         float elapsedTime = 0f;
-        Vector3 startingPosition = door.position;
         Quaternion startingRotation = door.rotation;
+        Vector3 startingPosition = door.position;
 
         while (elapsedTime < moveDuration)
         {
             elapsedTime += Time.deltaTime;
             float t = Mathf.Clamp01(elapsedTime / moveDuration);
 
-            // Lerp position only if open and closed positions are different.
-            if (closedPosition != openPosition)
+            // Smoothly interpolate the rotation.
+            door.rotation = Quaternion.Lerp(startingRotation, targetRotation, t);
+
+            // If changePosition is enabled, interpolate the position.
+            if (changePosition)
             {
                 door.position = Vector3.Lerp(startingPosition, targetPosition, t);
             }
 
-            // Lerp rotation every time.
-            door.rotation = Quaternion.Lerp(startingRotation, targetRotation, t);
-
             yield return null;
         }
 
-        // Snap to the final position and rotation.
-        if (closedPosition != openPosition)
+        // Snap to the final rotation and position.
+        door.rotation = targetRotation;
+        if (changePosition)
         {
             door.position = targetPosition;
         }
-        door.rotation = targetRotation;
 
         isMoving = false; // Unlock movement.
     }
